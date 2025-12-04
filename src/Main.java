@@ -6,27 +6,28 @@ public class Main {
     public static void main(String[] args) {
         Runner case1 = classic();
         Runner case2 = new Runner(
-          gridSize, 1, 14,
-          2,
+          gridSize, 1, 9,
+          2, 2,
           k -> 1d,
                 u -> u, q -> 1d
         );
         Runner case3 = new Runner(
-                gridSize, 1, 14,
-                2,
+                gridSize, 1, 9,
+                2, 2,
                 k -> k,
                 u -> u,
                 q -> 1d
         );
-        Runner case4 = new Runner(gridSize, 1, 14,
-                2,
+        Runner case4 = new Runner(gridSize, 1, 9,
+                2, 2,
                 k -> k,
                 u -> u*u,
                 q -> 1d);
-        variousDivisions(case1);
-        variousDivisions(case2);
-        variousDivisions(case3);
-        variousDivisions(case4);
+        case4.run();
+        //variousDivisions(case1);
+        //variousDivisions(case2);
+        //variousDivisions(case3);
+        //variousDivisions(case4);
     }
     public static void variousDivisions(Runner runner) {
         int n = 4;
@@ -52,8 +53,8 @@ public class Main {
 
     private static Runner classic() {
         return new Runner(
-                gridSize, 1, 14,
-                2,
+                gridSize, 1, 9,
+                2,1,
                 k -> 1d,
                 u -> 1d,
                 q -> 1d
