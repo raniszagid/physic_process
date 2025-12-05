@@ -48,13 +48,11 @@ public class Runner {
 
     public void nevyazka() {
         System.out.println("Невязки:");
-        //double[] x = new double[n];
         double[] x = new double[n+1];
         double current = rL;
         double h = rR - rL;
         h /= n;
         for (int i = 0; i <= n; i++) {
-        //for (int i = 0; i < n; i++) {
             x[i] = u.apply(current);
             current += h;
         }
@@ -62,7 +60,6 @@ public class Runner {
                 k, u, q);
         double[] Av = TridiagonalMatrixCalculator.multiplyTridiagonal(matrix.a, matrix.b, matrix.c, x);
         for (int i = 0; i <= n; i++) {
-        //for (int i = 0; i < n; i++) {
             double res = matrix.f[i] - Av[i];
             if (Math.abs(res) > Math.abs(maxN)) maxN = res;
             if (i > 0 && i < n-1) {
@@ -75,13 +72,11 @@ public class Runner {
     public void countValues() {
         MatrixSystem matrix = DiffSeqSolver.differenceScheme(rL, rR, n, nu1, nu2, xi1, xi2,
                 k, u, q);
-        //matrix.print();
         double[] x = TridiagonalMatrixCalculator.solveTridiagonal(matrix.a, matrix.b, matrix.c, matrix.f);
         double current = rL;
         double h = rR - rL;
         h /= n;
         for (int i = 0; i <= n; i++) {
-        //for (int i = 0; i < n; i++) {
             System.out.printf("x[%d] = %6.2e", i, x[i]);
             double error = Math.abs(x[i] - u.apply(current));
             if (Math.abs(error) > Math.abs(maxError)) maxError = error;

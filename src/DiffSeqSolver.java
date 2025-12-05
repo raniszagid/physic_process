@@ -8,11 +8,9 @@ public class DiffSeqSolver {
                                              UnaryOperator<Double> u,
                                              UnaryOperator<Double> q) {
         double[] f = new double[N+1];
-        //double[] f = new double[N];
         double r = A;
         double h = (B - A) / N;
         for (int i = 0; i <= N; i++) {
-        //for (int i = 0; i < N; i++) {
             double dk = Differentiation.derivative(k, r, 1e-10);
             double du = Differentiation.derivative(u, r, 1e-10);
             double d2u = Differentiation.derivative2(u, r, 1e-10);
@@ -43,7 +41,6 @@ public class DiffSeqSolver {
 
         // для i от 1 до N-1
         for (int i = 1; i <= N - 1; i++)
-        //for (int i = 1; i < N - 1; i++)
         {
             r += h;
             sys.a[i] = -((r - hh) * k.apply(r - hh)) / h;
@@ -53,19 +50,16 @@ public class DiffSeqSolver {
             sys.c[i] = -((r + hh) * k.apply(r + hh)) / h;
             sys.f[i] = r * h * sys.f[i];
         }
-        N++;
+
         // для i = N
         r += h;
-        sys.a[N-1] = -((r - hh) * k.apply(r - hh)) / h;
-        sys.b[N-1] = (r - hh) * k.apply(r - hh) / h
+        sys.a[N] = -((r - hh) * k.apply(r - hh)) / h;
+        sys.b[N] = (r - hh) * k.apply(r - hh) / h
                 + r * xi2
-                //+ (r + hh) * xi2
-                + r * q.apply(r) * hh; // менять h на hh
-        sys.c[N-1] = 0.0;
-        sys.f[N-1] = r * hh * sys.f[N-1]
-                + r * nu2
-                //+ (r + hh) * nu2
-        ; // менять h на hh
+                + r * q.apply(r) * hh;
+        sys.c[N] = 0.0;
+        sys.f[N] = r * hh * sys.f[N]
+                + r * nu2;
         return sys;
     }
 }
