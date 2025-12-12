@@ -1,9 +1,14 @@
+package lab1;
+
 public class MatrixSystem {
     public double[] a; // поддиагональ
     public double[] b; // главная диагональ
     public double[] c; // наддиагональ
     public double[] f; // правая часть
     public double[] expectedX; // ожидаемое решение
+    public double t;
+
+
 
     public MatrixSystem(double[] f) {
         int n = f.length;
@@ -13,6 +18,15 @@ public class MatrixSystem {
         this.expectedX = new double[n];
         this.f = f;
     }
+    public MatrixSystem(double t, double[] a, double[] b, double[] c, double[] f) {
+        this.t = t;
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.f = f;
+        this.expectedX = new double[f.length];
+    }
+
     public MatrixSystem(double[] a, double[] b, double[] c, double[] f, double[] expectedX) {
         this.a = a;
         this.b = b;
@@ -23,7 +37,7 @@ public class MatrixSystem {
 
     public void print() {
         int n = b.length;
-        System.out.println("Трехдиагональная матрица:");
+        System.out.printf("Трехдиагональная матрица (%.2f):\n", t);
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (j == i - 1) {

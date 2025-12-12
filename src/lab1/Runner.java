@@ -1,3 +1,5 @@
+package lab1;
+
 import java.util.function.UnaryOperator;
 
 public class Runner {
@@ -25,7 +27,7 @@ public class Runner {
         this.n = n; this.rL = rL; this.rR = rR; this.xi = xi;
         this.k = k; this.q = q;
         this.u = u;
-        this.nu1 = xi * u.apply(rL) - k.apply(rL) * Differentiation.derivative(u, rL, 1e-10);
+        this.nu1 = xi * u.apply(rL) - k.apply(rL) * Differentiation.derivative(u, rL);
         this.nu2 = u.apply(rR);
     }
 
@@ -70,7 +72,7 @@ public class Runner {
     public void countValues() {
         MatrixSystem matrix = DiffSeqSolver.differenceScheme(rL, rR, n, nu1, nu2, xi,
                 k, u, q);
-        //matrix.print();
+        matrix.print();
         double[] x = TridiagonalMatrixCalculator.solveTridiagonal(matrix.a, matrix.b, matrix.c, matrix.f);
         double current = rL;
         double h = rR - rL;

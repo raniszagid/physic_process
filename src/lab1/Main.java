@@ -1,3 +1,5 @@
+package lab1;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,10 +25,11 @@ public class Main {
                 k -> k,
                 u -> u*u,
                 q -> 1d);
-        variousDivisions(case1);
-        variousDivisions(case2);
-        variousDivisions(case3);
-        variousDivisions(case4);
+        case1.run();
+        //variousDivisions(case1);
+        //variousDivisions(case2);
+        //variousDivisions(case3);
+        //variousDivisions(case4);
     }
     public static void variousDivisions(Runner runner) {
         int n = 4;

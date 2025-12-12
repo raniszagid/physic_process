@@ -1,3 +1,5 @@
+package lab1;
+
 public class TridiagonalMatrixCalculator {
     public static double[] multiplyTridiagonal(double[] a, double[] b, double[] c, double[] x) {
         int n = x.length;

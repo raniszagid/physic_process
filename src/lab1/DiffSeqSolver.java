@@ -1,3 +1,5 @@
+package lab1;
+
 import java.util.function.UnaryOperator;
 
 public class DiffSeqSolver {
@@ -11,9 +13,9 @@ public class DiffSeqSolver {
         double r = A;
         double h = (B - A) / N;
         for (int i = 0; i < N; i++) {
-            double dk = Differentiation.derivative(k, r, 1e-10);
-            double du = Differentiation.derivative(u, r, 1e-10);
-            double d2u = Differentiation.derivative2(u, r, 1e-10);
+            double dk = Differentiation.derivative(k, r);
+            double du = Differentiation.derivative(u, r);
+            double d2u = Differentiation.derivative2(u, r);
             double firstTerm = dk * du + k.apply(r) * du / r + k.apply(r) * d2u;
             f[i] = - firstTerm + q.apply(r) * u.apply(r);
             r += h;
