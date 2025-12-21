@@ -1,13 +1,9 @@
 package lab__2;
 
-import lab1.DiffSeqSolver;
 import lab1.Differentiation;
 import lab1.MatrixSystem;
 import lab1.TridiagonalMatrixCalculator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 
@@ -22,6 +18,8 @@ public class EulerSolver {
     BinaryOperator<Double> q;
     double xi1;
     UnaryOperator<Double> phi;
+    double maxError;
+    double maxNev;
     public double[] countSourceSingleMatrix(double t) {
         double[] f = new double[n];
         double r = a;
@@ -40,18 +38,6 @@ public class EulerSolver {
         return f;
     }
 
-    public double[][] countSourceDoubleMatrix() {
-        double[][] result = new double[timeSteps+1][n];
-        double h = tend / timeSteps;
-
-        for (int i = 0; i <= timeSteps; i++) {
-            double t = h * i;
-            double[] currentTimeVector = countSourceSingleMatrix(t).clone();
-            result[i] = currentTimeVector.clone();
-        }
-        return result;
-    }
-
     public MatrixSystem differenceScheme(double t, double[] f) {
         double h = (b - a) / n;
         double hh = h / 2.0;
@@ -61,48 +47,6 @@ public class EulerSolver {
         double[] cc = new double[n];
         double[] ff = new double[n];
 
-/*
-
-        // для i = 0
-        aa[0] = 0;
-        bb[0] =-(
-                (r + hh) * kmid(r, r+h, t) / h
-                + r * q.apply(r, t) * hh
-                + xi1 * r
-        );
-        cc[0] = (r + hh) * kmid(r, r+h, t) / h;
-        ff[0] = //Differentiation.derivativeByT(u, r, t) * r * hh
-                - hh * f[0] * r
-                - r * v1(t);
-
-        // для i от 1 до N-2
-        for (int i = 1; i < n - 1; i++)
-        {
-            r += h;
-            aa[i] = (r - hh) * kmid(r-h, r, t) / h;
-            bb[i] = -(
-                    ((r + hh) * kmid(r, r+h, t)) / h
-                    + ((r - hh) * kmid(r, r-h, t)) / h
-                    + r * q.apply(r, t) * h
-            );
-            cc[i] = (r + hh) * kmid(r, r+h, t) / h;
-            ff[i] = //Differentiation.derivativeByT(u, r, t) * r * h
-                    - r * h * f[i];
-        }
-
-        // для i = N-1
-        r += h;
-        aa[n - 1] = (r - hh) * kmid(r, r-h, t) / h;
-        bb[n - 1] =-(
-                (r - hh) * kmid(r, r-h, t) / h
-                + (r + hh) * kmid(r, r+h, t) / h
-                + r * q.apply(r, t) * h
-        );
-        cc[n - 1] = 0.0;
-        ff[n - 1] = //Differentiation.derivativeByT(u, r, t) * r * h
-                - (r * h * f[n - 1] + (r + hh) * kmid(r, r+h, t) / h * v2(t));
-*/
-
         // для i = 0
         aa[0] = 0;
         bb[0] =-(
@@ -111,9 +55,7 @@ public class EulerSolver {
                         + xi1 / hh
         );
         cc[0] = (r + hh) * kmid(r, r+h, t) / (h * hh * r);
-        ff[0] = //Differentiation.derivativeByT(u, r, t) * r * hh
-                 f[0]
-                        + v1(t) / hh;
+        ff[0] = f[0] + v1(t) / hh;
 
         // для i от 1 до N-2
         for (int i = 1; i < n - 1; i++)
@@ -126,8 +68,7 @@ public class EulerSolver {
                             + q.apply(r, t)
             );
             cc[i] = (r + hh) * kmid(r, r+h, t) / (h * h *r) ;
-            ff[i] = //Differentiation.derivativeByT(u, r, t) * r * h
-                    f[i];
+            ff[i] = f[i];
         }
 
         // для i = N-1
@@ -139,25 +80,12 @@ public class EulerSolver {
                         + q.apply(r, t)
         );
         cc[n - 1] = 0.0;
-        ff[n - 1] = //Differentiation.derivativeByT(u, r, t) * r * h
-                 (f[n - 1] + (r + hh) * kmid(r, r+h, t) / (h*h*r) * v2(t));
+        ff[n - 1] = f[n - 1] + (r + hh) * kmid(r, r+h, t) / (h*h*r) * v2(t);
 
         return new MatrixSystem(t, aa, bb, cc, ff);
     }
 
-    public List<MatrixSystem> bigDifferenceScheme() {
-        double[][] source = countSourceDoubleMatrix().clone();
-        List<MatrixSystem> list = new ArrayList<>(timeSteps+1);
-        double h = tend / timeSteps;
-        for (int i = 0; i <= timeSteps; i++) {
-            list.add(
-                    differenceScheme(
-                        h * i, source[i]));
-        }
-        return list;
-    }
-
-    public void run3() {
+    public void implicit() {
         double currentTime = 0;
         double tau = tend / timeSteps;
         double[][] uu = new double[timeSteps+1][n];
@@ -195,11 +123,10 @@ public class EulerSolver {
                 nevyzaki[j][i] = Differentiation.derivativeByT(u, hr*i+a, j*tau)-Av[i]-matrix.f[i];
             }
         }
-        printMatrix(err);
-        printMatrix(nevyzaki);
+        finish(err, nevyzaki);
     }
 
-    public void run2() {
+    public void explicit() {
         double currentTime = 0;
         double tau = tend / timeSteps;
         double[][] uu = new double[timeSteps+1][n];
@@ -216,11 +143,11 @@ public class EulerSolver {
                 matrix.b[i] = matrix.b[i] * tau + 1;
                 matrix.c[i] = tau * matrix.c[i];
             }
-            double[] nextuu = TridiagonalMatrixCalculator.multiplyTridiagonal(matrix.a, matrix.b, matrix.c, uu[j]);
+            double[] values = TridiagonalMatrixCalculator.multiplyTridiagonal(matrix.a, matrix.b, matrix.c, uu[j]);
             for (int i = 0; i < n; i++) {
-                nextuu[i] = nextuu[i] + tau * matrix.f[i];
+                values[i] = values[i] + tau * matrix.f[i];
             }
-            uu[j+1] = nextuu;
+            uu[j+1] = values;
         }
         double[][] nevyzaki = new double[timeSteps+1][n];
         double[][] err = new double[timeSteps+1][n];
@@ -232,12 +159,11 @@ public class EulerSolver {
             MatrixSystem matrix = differenceScheme(j*tau, countSourceSingleMatrix(j*tau));
             double[] Av = TridiagonalMatrixCalculator.multiplyTridiagonal(matrix.a, matrix.b, matrix.c, x);
             for (int i = 0; i < n; i++) {
-                err[j][i] = u.apply(hr*i+a, j*tau) - uu[j][i];
-                nevyzaki[j][i] = Differentiation.derivativeByT(u, hr*i+a, j*tau)-Av[i]-matrix.f[i];
+                err[j][i] = Math.abs(u.apply(hr*i+a, j*tau) - uu[j][i]);
+                nevyzaki[j][i] = Math.abs(Differentiation.derivativeByT(u, hr*i+a, j*tau)-Av[i]-matrix.f[i]);
             }
         }
-        printMatrix(err);
-        printMatrix(nevyzaki);
+        finish(err, nevyzaki);
     }
 
 
@@ -274,5 +200,24 @@ public class EulerSolver {
             System.out.println();
         }
         System.out.println();
+    }
+
+    public double findMax(double[][] matrix) {
+        double max = 0;
+        for (int j = 0; j < matrix.length; j++) {
+            for (int i = 0; i < matrix[0].length; i++) {
+                if (matrix[j][i] > max) max = matrix[j][i];
+            }
+        }
+        return max;
+    }
+
+    private void finish(double[][] err, double[][] nevyzaki) {
+        //printMatrix(err);
+        //printMatrix(nevyzaki);
+        maxError = findMax(err);
+        maxNev = findMax(nevyzaki);
+        //System.out.printf("Макс. по модулю погрешность: %.3e\n", maxError);
+        //System.out.printf("Макс. по модулю невязка: %.3e\n", maxNev);
     }
 }
