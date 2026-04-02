@@ -28,7 +28,7 @@ public class DiffScheme {
 
     private void printArray(double[][] arr) {
         for (int j = 0; j < arr.length; j++) {
-            for (int i = 1; i < arr[0].length; i++) {
+            for (int i = 0; i < arr[0].length; i++) {
                 System.out.printf("%.3f\t", arr[j][i]);
             }
             System.out.println();

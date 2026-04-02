@@ -32,9 +32,7 @@ public class Solver {
 
     public Solver(BinaryOperator<Double> k1, BinaryOperator<Double> k2,
                   double A, double B, double C, double D, int N, int M,
-                  BinaryOperator<Double> u,
-                  UnaryOperator<Double> g1, UnaryOperator<Double> g2,
-                  UnaryOperator<Double> g3, UnaryOperator<Double> g4, double xi) {
+                  BinaryOperator<Double> u, double xi) {
         this.k1 = k1;
         this.k2 = k2;
         this.A = A;
@@ -44,10 +42,10 @@ public class Solver {
         this.N = N;
         this.M = M;
         this.u = u;
-        this.g1 = g1;
-        this.g2 = g2;
-        this.g3 = g3;
-        this.g4 = g4;
+        this.g1 = y -> u.apply(A, y);
+        this.g2 = y -> u.apply(B, y);
+        this.g3 = x -> k2.apply(x, C) * Differentiation.derivativeByT(u, x, C) + xi * u.apply(x, C);
+        this.g4 = x -> u.apply(x, D);
         this.xi = xi;
         this.hx = (B - A) / N;
         this.hy = (D - C) / M;
@@ -70,15 +68,19 @@ public class Solver {
                 system.sizeY, system.sizeX
         );
         double x = A; double y = C;
+        double maxError = 0;
         for (int j = 0; j < M; j++) {
             y = C + j * hy;
             for (int i = 0; i < N; i++) {
                 x = A + i * hx;
                 double expected = u.apply(x, y);
                 double actual = xyCounted[j][i];
-                System.out.printf("(%d, %d)\t%.3f\t%.3f\n", i, j, expected, actual);
+                double error = Math.abs(actual - expected);
+                if (error > maxError) maxError = error;
+                System.out.printf("(%d, %d)\t%.3f\t%.3f\t%.3f\n", i, j, expected, actual, error);
             }
         }
+        System.out.printf("max error: %.3f\n", maxError);
     }
 
     public DiffScheme differenceScheme() {
@@ -93,126 +95,122 @@ public class Solver {
 
         for (int j = 0; j < M; j++) {
             y = C + j * hy;
+            c[j][0] = 1;
+            a[j][0] = 0;
+            b[j][0] = 0;
+            d[j][0] = 0;
+            e[j][0] = 0;
+            f[j][0] = g1.apply(y);
             if (j == 0) {
-                for (int i = 0; i < N - 1; i++) {
+                for (int i = 1; i < N; i++) {
                     x = A + i * hx;
-                    if (i == 0) {
-                        c[j][i] = 1;
-                        a[j][i] = 0;
+                    c[j][i] = hy / hx
+                            // 2
+                            * kmidx(k1, x, x + hx, y)
+                            + hy / hx
+                            // 2
+                            * kmidx(k1, x, x - hx, y)
+                            + hx / hy * kmidy(k2, x, y, y + hy)
+                            + hx * xi;
+                    d[j][i] = -hx / hy * kmidy(k2, x, y, y + hy);
+                    e[j][i] = 0;
+                    if (i == 1) {
+                        // для i = 1, j = 0
+                        a[j][i] = -hy / hx
+                                // 2
+                                * kmidx(k1, x, x + hx, y);
                         b[j][i] = 0;
-                        d[j][i] = 0;
-                        e[j][i] = 0;
-                        f[j][i] = g1.apply(y);
-                    }
-                    else {
-                        c[j][i] = hy / hx / 2 * kmidx(k1, x, x + hx, y)
-                                + hy / hx / 2 * kmidx(k1, x, x - hx, y)
-                                + hx / hy * kmidy(k2, x, y, y + hy)
-                                + hx * xi;
-                        d[j][i] = -hx / hy * kmidy(k2, x, y, y + hy);
-                        e[j][i] = 0;
-                        if (i == 1) {
-                            // для i = 1, j = 0
-                            a[j][i] = -hy / hx / 2 * kmidx(k1, x, x + hx, y);
-                            b[j][i] = 0;
-                            f[j][i] = hx * hy / 2 * source[j][i]
-                                    + hx * g3.apply(x)
-                                    + hy / hx / 2 * kmidx(k1, x, x - hx, y) * g1.apply(y);
-                        } else if (i == N - 1) {
-                            // для i = N - 1, j = 0
-                            a[j][i] = 0;
-                            b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy / 2 * source[j][i]
-                                    + hx * g3.apply(x)
-                                    + hy / hx / 2 * kmidx(k1, x, x + hx, y) * g2.apply(y);
-                        } else {
-                            // для i = 2 ... N - 2, j = 0
-                            a[j][i] = -hy / hx / 2 * kmidx(k1, x, x + hx, y);
-                            b[j][i] = -hy / hx / 2 * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy / 2 * source[j][i]
-                                    + hx * g3.apply(x);
-                        }
+                        f[j][i] = hx * hy
+                                // 2
+                                * source[j][i]
+                                + hx * g3.apply(x)
+                                + hy / hx
+                                // 2
+                                * kmidx(k1, x, x - hx, y) * g1.apply(y);
+                    } else if (i == N - 1) {
+                        // для i = N - 1, j = 0
+                        a[j][i] = 0;
+                        b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy
+                                // 2
+                                * source[j][i]
+                                + hx * g3.apply(x)
+                                + hy / hx
+                                // 2
+                                * kmidx(k1, x, x + hx, y) * g2.apply(y);
+                    } else {
+                        // для i = 2 ... N - 2, j = 0
+                        a[j][i] = -hy / hx
+                                // 2
+                                * kmidx(k1, x, x + hx, y);
+                        b[j][i] = -hy / hx
+                                // 2
+                                * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy
+                                // 2
+                                * source[j][i]
+                                + hx * g3.apply(x);
                     }
                 }
             }
             else if (j == M - 1) {
-                for (int i = 0; i < N - 1; i++) {
+                for (int i = 1; i < N; i++) {
                     x = A + i * hx;
-                    if (i == 0) {
-                        c[j][i] = 1;
-                        a[j][i] = 0;
+                    c[j][i] = hy / hx * kmidx(k1, x, x + hx, y)
+                            + hy / hx * kmidx(k1, x, x - hx, y)
+                            + hx / hy * kmidy(k2, x, y, y + hy)
+                            + hx / hy * kmidy(k2, x, y, y - hy);
+                    d[j][i] = 0;
+                    e[j][i] = -hx / hy * kmidy(k2, x, y, y - hy);
+                    if (i == 1) {
+                        // для i = 1, j = M - 1
+                        a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
                         b[j][i] = 0;
-                        d[j][i] = 0;
-                        e[j][i] = 0;
-                        f[j][i] = g1.apply(y);
-                    }
-                    else {
-                        c[j][i] = hy / hx * kmidx(k1, x, x + hx, y)
-                                + hy / hx * kmidx(k1, x, x - hx, y)
-                                + hx / hy * kmidy(k2, x, y, y + hy)
-                                + hx / hy * kmidy(k2, x, y, y - hy);
-                        d[j][i] = 0;
-                        e[j][i] = -hx / hy * kmidy(k2, x, y, y - hy);
-                        if (i == 1) {
-                            // для i = 1, j = M - 1
-                            a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
-                            b[j][i] = 0;
-                            f[j][i] = hx * hy * source[j][i]
-                                    + hy / hx * kmidx(k1, x, x - hx, y) * g1.apply(y)
-                                    + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
-                        } else if (i == N - 1) {
-                            // для i = N - 1, j = M - 1
-                            a[j][i] = 0;
-                            b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy * source[j][i]
-                                    + hy / hx * kmidx(k1, x, x + hx, y) * g2.apply(y)
-                                    + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
-                        } else {
-                            // для i = 2 ... N - 2, j = M - 1
-                            a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
-                            b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy * source[j][i]
-                                    + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
-                        }
+                        f[j][i] = hx * hy * source[j][i]
+                                + hy / hx * kmidx(k1, x, x - hx, y) * g1.apply(y)
+                                + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
+                    } else if (i == N - 1) {
+                        // для i = N - 1, j = M - 1
+                        a[j][i] = 0;
+                        b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy * source[j][i]
+                                + hy / hx * kmidx(k1, x, x + hx, y) * g2.apply(y)
+                                + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
+                    } else {
+                        // для i = 2 ... N - 2, j = M - 1
+                        a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
+                        b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy * source[j][i]
+                                + hx / hy * kmidy(k2, x, y, y + hy) * g4.apply(x);
                     }
                 }
             }
             else {
-                for (int i = 0; i < N - 1; i++) {
+                for (int i = 1; i < N; i++) {
                     x = A + i * hx;
-                    if (i == 0) {
-                        c[j][i] = 1;
-                        a[j][i] = 0;
+                    c[j][i] = hy / hx * kmidx(k1, x, x + hx, y)
+                            + hy / hx * kmidx(k1, x, x - hx, y)
+                            + hx / hy * kmidy(k2, x, y, y + hy)
+                            + hx / hy * kmidy(k2, x, y, y - hy);
+                    d[j][i] = -hx / hy * kmidy(k2, x, y, y + hy);
+                    e[j][i] = -hx / hy * kmidy(k2, x, y, y - hy);
+                    if (i == 1) {
+                        // для i = 1, j = 1 ... M - 2
+                        a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
                         b[j][i] = 0;
-                        d[j][i] = 0;
-                        e[j][i] = 0;
-                        f[j][i] = g1.apply(y);
-                    }
-                    else {
-                        c[j][i] = hy / hx * kmidx(k1, x, x + hx, y)
-                                + hy / hx * kmidx(k1, x, x - hx, y)
-                                + hx / hy * kmidy(k2, x, y, y + hy)
-                                + hx / hy * kmidy(k2, x, y, y - hy);
-                        d[j][i] = -hx / hy * kmidy(k2, x, y, y + hy);
-                        e[j][i] = -hx / hy * kmidy(k2, x, y, y - hy);
-                        if (i == 1) {
-                            // для i = 1, j = 1 ... M - 2
-                            a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
-                            b[j][i] = 0;
-                            f[j][i] = hx * hy * source[j][i]
-                                    + hy / hx * kmidx(k1, x, x - hx, y) * g1.apply(y);
-                        } else if (i == N - 1) {
-                            // для i = N - 1, j = 1 ... M - 2
-                            a[j][i] = 0;
-                            b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy * source[j][i]
-                                    + hy / hx * kmidx(k1, x, x + hx, y) * g2.apply(y);
-                        } else {
-                            // для i = 2 ... N - 2, j = 1 ... M - 2
-                            a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
-                            b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
-                            f[j][i] = hx * hy * source[j][i];
-                        }
+                        f[j][i] = hx * hy * source[j][i]
+                                + hy / hx * kmidx(k1, x, x - hx, y) * g1.apply(y);
+                    } else if (i == N - 1) {
+                        // для i = N - 1, j = 1 ... M - 2
+                        a[j][i] = 0;
+                        b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy * source[j][i]
+                                + hy / hx * kmidx(k1, x, x + hx, y) * g2.apply(y);
+                    } else {
+                        // для i = 2 ... N - 2, j = 1 ... M - 2
+                        a[j][i] = -hy / hx * kmidx(k1, x, x + hx, y);
+                        b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
+                        f[j][i] = hx * hy * source[j][i];
                     }
                 }
             }
