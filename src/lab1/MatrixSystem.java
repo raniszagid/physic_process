@@ -35,6 +35,14 @@ public class MatrixSystem {
         this.expectedX = expectedX;
     }
 
+    public MatrixSystem(double[] a, double[] b, double[] c, double[] f) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.f = f;
+        this.expectedX = expectedX;
+    }
+
     public void print() {
         int n = b.length;
         System.out.printf("Трехдиагональная матрица (%.2f):\n", t);

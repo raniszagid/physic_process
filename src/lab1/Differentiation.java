@@ -94,4 +94,8 @@ public class Differentiation {
         UnaryOperator<Double> onlyR = x -> func.apply(x, t);
         return derivative2(onlyR, r);
     }
+    public static double der2T(BinaryOperator<Double> func, double r, double t) {
+        UnaryOperator<Double> onlyT = x -> func.apply(r, x);
+        return derivative2(onlyT, t);
+    }
 }
