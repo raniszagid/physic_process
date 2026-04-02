@@ -42,19 +42,19 @@ public class Solver {
         this.N = N;
         this.M = M;
         this.u = u;
+        this.xi = xi;
         this.g1 = y -> u.apply(A, y);
         this.g2 = y -> u.apply(B, y);
-        this.g3 = x -> k2.apply(x, C) * Differentiation.derivativeByT(u, x, C) + xi * u.apply(x, C);
+        this.g3 = x -> xi * u.apply(x, C) - k2.apply(x, C) * Differentiation.derivativeByT(u, x, C);
         this.g4 = x -> u.apply(x, D);
-        this.xi = xi;
         this.hx = (B - A) / N;
         this.hy = (D - C) / M;
     }
 
     public void run() {
         MatrixManager calc = new MatrixManager();
-        //Main.printMatrix(countSourceMatrix());
-        //System.out.println();
+        Main.printMatrix(countSourceMatrix());
+        System.out.println();
         DiffScheme diffScheme = differenceScheme();
         diffScheme.print();
         MatrixManager.TridiagonalSystem system = calc.convertToTridiagonal(
@@ -105,10 +105,10 @@ public class Solver {
                 for (int i = 1; i < N; i++) {
                     x = A + i * hx;
                     c[j][i] = hy / hx
-                            // 2
+                            / 2
                             * kmidx(k1, x, x + hx, y)
                             + hy / hx
-                            // 2
+                            / 2
                             * kmidx(k1, x, x - hx, y)
                             + hx / hy * kmidy(k2, x, y, y + hy)
                             + hx * xi;
@@ -117,37 +117,37 @@ public class Solver {
                     if (i == 1) {
                         // для i = 1, j = 0
                         a[j][i] = -hy / hx
-                                // 2
+                                / 2
                                 * kmidx(k1, x, x + hx, y);
                         b[j][i] = 0;
                         f[j][i] = hx * hy
-                                // 2
+                                / 2
                                 * source[j][i]
                                 + hx * g3.apply(x)
                                 + hy / hx
-                                // 2
+                                / 2
                                 * kmidx(k1, x, x - hx, y) * g1.apply(y);
                     } else if (i == N - 1) {
                         // для i = N - 1, j = 0
                         a[j][i] = 0;
                         b[j][i] = -hy / hx * kmidx(k1, x, x - hx, y);
                         f[j][i] = hx * hy
-                                // 2
+                                / 2
                                 * source[j][i]
                                 + hx * g3.apply(x)
                                 + hy / hx
-                                // 2
+                                / 2
                                 * kmidx(k1, x, x + hx, y) * g2.apply(y);
                     } else {
                         // для i = 2 ... N - 2, j = 0
                         a[j][i] = -hy / hx
-                                // 2
+                                / 2
                                 * kmidx(k1, x, x + hx, y);
                         b[j][i] = -hy / hx
-                                // 2
+                                / 2
                                 * kmidx(k1, x, x - hx, y);
                         f[j][i] = hx * hy
-                                // 2
+                                / 2
                                 * source[j][i]
                                 + hx * g3.apply(x);
                     }
@@ -220,7 +220,7 @@ public class Solver {
 
     double[][] countSourceMatrix() {
         double x = A; double y = C;
-        double[][] f = new double[N][M];
+        double[][] f = new double[M][N];
         for (int j = 0; j < M; j++) {
             y = C + j * hy;
             for (int i = 0; i < N; i++) {
@@ -229,7 +229,7 @@ public class Solver {
                 double d2udx2 = k1.apply(x, y) * Differentiation.der2R(u, x, y);
                 double dk2dy = Differentiation.derivativeByT(k2, x, y) * Differentiation.derivativeByT(u, x, y);
                 double d2udy2 = k2.apply(x, y) * Differentiation.der2T(u, x, y);
-                //System.out.printf("%f\t%f\t%f\t%f\n", dk1dx,d2udx2,dk2dy ,d2udy2);
+                System.out.printf("%f\t%f\t%f\t%f\n", dk1dx,d2udx2,dk2dy ,d2udy2);
                 f[j][i] = - (dk1dx + d2udx2 + dk2dy + d2udy2);
             }
         }
