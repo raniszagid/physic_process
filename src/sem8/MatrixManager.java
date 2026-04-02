@@ -444,4 +444,41 @@ public class MatrixManager {
         }
         return 1; // для больших матриц используем другой метод
     }
+
+    public double[] applyDifferenceOperator(DiffScheme scheme, double[][] u, int sizeX, int sizeY) {
+        double[] Au = new double[sizeY * sizeX];
+
+        for (int j = 0; j < sizeY; j++) {
+            for (int i = 0; i < sizeX; i++) {
+                double value = 0.0;
+
+                // Центральный узел
+                value += scheme.c[j][i] * u[j][i];
+
+                // Левый сосед (i-1, j)
+                if (i > 0) {
+                    value += scheme.b[j][i] * u[j][i-1];
+                }
+
+                // Правый сосед (i+1, j)
+                if (i < sizeX - 1) {
+                    value += scheme.a[j][i] * u[j][i+1];
+                }
+
+                // Нижний сосед (i, j-1)
+                if (j > 0) {
+                    value += scheme.e[j][i] * u[j-1][i];
+                }
+
+                // Верхний сосед (i, j+1)
+                if (j < sizeY - 1) {
+                    value += scheme.d[j][i] * u[j+1][i];
+                }
+
+                Au[j * sizeX + i] = value;
+            }
+        }
+
+        return Au;
+    }
 }

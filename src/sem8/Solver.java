@@ -81,6 +81,56 @@ public class Solver {
             }
         }
         System.out.printf("max error: %.3f\n", maxError);
+
+
+
+
+        System.out.println("\n=== ПРОВЕРКА НЕВЯЗОК ===");
+
+
+// Размеры сетки
+        int sizeY = M;  // количество узлов по y (0..M-1)
+        int sizeX = N;  // количество узлов по x (0..N-1)
+
+// Создаем вектор решения U (разворачиваем 2D в 1D)
+        double[] U = new double[sizeY * sizeX];
+        for (int j = 0; j < sizeY; j++) {
+            for (int i = 0; i < sizeX; i++) {
+                U[j * sizeX + i] = xyCounted[j][i];
+            }
+        }
+
+// Вычисляем A*U (применяем разностный оператор)
+        double[] AU = calc.applyDifferenceOperator(diffScheme, xyCounted, sizeX, sizeY);
+
+// Вычисляем и выводим невязки
+        double maxResidual = 0.0;
+        double maxInnerResidual = 0.0;
+
+        System.out.println("Невязки для каждого узла (i,j):");
+        for (int j = 0; j < sizeY; j++) {
+            for (int i = 0; i < sizeX; i++) {
+                int idx = j * sizeX + i;
+                double residual = diffScheme.f[j][i] - AU[idx];
+
+                if (Math.abs(residual) > Math.abs(maxResidual)) {
+                    maxResidual = residual;
+                }
+
+                // Исключаем граничные узлы для inner невязки
+                boolean isBoundary = (i == 0 || i == sizeX-1 || j == 0 || j == sizeY-1);
+                if (!isBoundary) {
+                    if (Math.abs(residual) > Math.abs(maxInnerResidual)) {
+                        maxInnerResidual = residual;
+                    }
+                }
+
+                System.out.printf("(%d,%d): %.3e\n", i, j, residual);
+            }
+        }
+
+        System.out.printf("\nМаксимальная невязка: %.3e\n", maxResidual);
+        System.out.printf("Максимальная внутренняя невязка: %.3e\n", maxInnerResidual);
     }
 
     public DiffScheme differenceScheme() {

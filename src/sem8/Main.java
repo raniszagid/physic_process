@@ -6,12 +6,12 @@ import java.util.function.BinaryOperator;
 public class Main {
     public static void main(String[] args) {
         Solver example = new Solver(
-                (x, y) -> x*y,
+                (x, y) -> x*x*y,
                 (x, y) -> x*y,
                 1, 9,
                 1, 9,
-                8, 8,
-                (x, y) -> x*y,//1d,
+                32, 32,
+                (x, y) -> x*y*y,
                 1
         );
         //double[][] sourceMatrix = example.countSourceMatrix();
